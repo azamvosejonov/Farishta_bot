@@ -14,6 +14,7 @@ from app.keyboards import (
     booking_dates_kb, booking_times_kb, phone_request_kb, main_menu_kb
 )
 from app.config import ADMIN_ID, OFFICE_ADDRESS, OFFICE_LATITUDE, OFFICE_LONGITUDE
+from app.handlers.utils import safe_callback_answer
 
 router = Router()
 
@@ -30,7 +31,7 @@ async def start_booking(callback: CallbackQuery, state: FSMContext):
         dates = await get_available_dates(session)
 
     if not dates:
-        await callback.answer("❌ Hozircha bo'sh kun yo'q. Admin jadval belgilamagan.", show_alert=True)
+        await safe_callback_answer(callback, "❌ Hozircha bo'sh kun yo'q. Admin jadval belgilamagan.", show_alert=True)
         return
 
     await state.update_data(apartment_id=apartment_id)
@@ -39,7 +40,7 @@ async def start_booking(callback: CallbackQuery, state: FSMContext):
         reply_markup=booking_dates_kb(dates, apartment_id),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("bdate:"))
@@ -53,7 +54,7 @@ async def select_booking_date(callback: CallbackQuery, state: FSMContext):
         slots = await get_available_slots(session, target_date)
 
     if not slots:
-        await callback.answer("❌ Bu kunda bo'sh vaqt qolmagan.", show_alert=True)
+        await safe_callback_answer(callback, "❌ Bu kunda bo'sh vaqt qolmagan.", show_alert=True)
         return
 
     day_name = DAYS_UZ.get(target_date.weekday(), "")
@@ -64,7 +65,7 @@ async def select_booking_date(callback: CallbackQuery, state: FSMContext):
         reply_markup=booking_times_kb(slots, apartment_id, date_str),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("btime:"))
@@ -88,14 +89,14 @@ async def select_booking_time(callback: CallbackQuery, state: FSMContext):
         parse_mode="HTML"
     )
     await state.set_state(BookingState.waiting_phone)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data == "cancel_booking")
 async def cancel_booking_flow(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.edit_text("❌ Bron bekor qilindi.")
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(BookingState.waiting_phone, F.contact)

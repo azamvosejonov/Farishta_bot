@@ -26,6 +26,7 @@ from app.keyboards import (
     admin_construction_building_kb, confirm_broadcast_kb
 )
 from app.config import ADMIN_ID, ADMIN_SECRET
+from app.handlers.utils import safe_callback_answer
 
 router = Router()
 
@@ -115,7 +116,7 @@ async def admin_main(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_main_kb(),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== BUILDINGS MANAGEMENT ====================
@@ -132,7 +133,7 @@ async def admin_buildings(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_buildings_kb(buildings),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data == "adm:add_building")
@@ -141,7 +142,7 @@ async def admin_add_building(callback: CallbackQuery, state: FSMContext):
         return
     await callback.message.edit_text("🏢 Yangi bino nomini kiriting:")
     await state.set_state(AdminStates.add_building_name)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.add_building_name)
@@ -201,7 +202,7 @@ async def admin_building_detail(callback: CallbackQuery, state: FSMContext):
         building = await get_building(session, building_id)
         stats = await get_stats(session, building_id)
     if not building:
-        await callback.answer("Topilmadi", show_alert=True)
+        await safe_callback_answer(callback, "Topilmadi", show_alert=True)
         return
     await callback.message.edit_text(
         f"🏢 <b>{building.name}</b>\n"
@@ -212,7 +213,7 @@ async def admin_building_detail(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_building_detail_kb(building_id),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_bphoto:"))
@@ -223,7 +224,7 @@ async def admin_building_photo(callback: CallbackQuery, state: FSMContext):
     await state.update_data(building_id=building_id)
     await callback.message.edit_text("🖼 Bino fasadi rasmini yuboring:")
     await state.set_state(AdminStates.building_photo)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.building_photo, F.photo)
@@ -255,7 +256,7 @@ async def admin_building_delete(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_buildings_kb(buildings),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== FLOORS MANAGEMENT ====================
@@ -272,7 +273,7 @@ async def admin_floors(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_floors_kb(floors, building_id),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_addfl:"))
@@ -283,7 +284,7 @@ async def admin_add_floor(callback: CallbackQuery, state: FSMContext):
     await state.update_data(building_id=building_id)
     await callback.message.edit_text("📐 Qavat raqamini kiriting:")
     await state.set_state(AdminStates.add_floor_number)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.add_floor_number)
@@ -315,14 +316,14 @@ async def admin_floor_detail(callback: CallbackQuery, state: FSMContext):
     async with async_session() as session:
         floor = await get_floor(session, floor_id)
     if not floor:
-        await callback.answer("Topilmadi", show_alert=True)
+        await safe_callback_answer(callback, "Topilmadi", show_alert=True)
         return
     await callback.message.edit_text(
         f"📐 <b>{floor.floor_number}-qavat</b>",
         reply_markup=admin_floor_detail_kb(floor_id, floor.building_id),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_flphoto:"))
@@ -333,7 +334,7 @@ async def admin_floor_photo(callback: CallbackQuery, state: FSMContext):
     await state.update_data(floor_id=floor_id)
     await callback.message.edit_text("🖼 Qavat plani rasmini yuboring:")
     await state.set_state(AdminStates.floor_photo)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.floor_photo, F.photo)
@@ -367,7 +368,7 @@ async def admin_floor_apartments(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_apt_list_kb(apartments, floor_id),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_addapt:"))
@@ -378,7 +379,7 @@ async def admin_add_apartment(callback: CallbackQuery, state: FSMContext):
     await state.update_data(floor_id=floor_id)
     await callback.message.edit_text("🏠 Kvartira raqamini kiriting (1, 2, 3 yoki 4):")
     await state.set_state(AdminStates.add_apt_number)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.add_apt_number)
@@ -491,7 +492,7 @@ async def admin_apt_detail(callback: CallbackQuery, state: FSMContext):
     async with async_session() as session:
         apt = await get_apartment(session, apt_id)
     if not apt:
-        await callback.answer("Topilmadi", show_alert=True)
+        await safe_callback_answer(callback, "Topilmadi", show_alert=True)
         return
     status = "🔴 Sotilgan" if apt.is_sold else "🟢 Sotuvda"
     await callback.message.edit_text(
@@ -504,7 +505,7 @@ async def admin_apt_detail(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_apt_detail_kb(apt),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_apt_sell:"))
@@ -515,7 +516,7 @@ async def admin_apt_sell(callback: CallbackQuery):
     async with async_session() as session:
         await update_apartment_status(session, apt_id, True)
         apt = await get_apartment(session, apt_id)
-    await callback.answer("🔴 Sotildi deb belgilandi!", show_alert=True)
+    await safe_callback_answer(callback, "🔴 Sotildi deb belgilandi!", show_alert=True)
     status = "🔴 Sotilgan"
     await callback.message.edit_text(
         f"🏠 <b>{apt.apartment_number}-kvartira</b>\n"
@@ -537,7 +538,7 @@ async def admin_apt_unsell(callback: CallbackQuery):
     async with async_session() as session:
         await update_apartment_status(session, apt_id, False)
         apt = await get_apartment(session, apt_id)
-    await callback.answer("🟢 Sotuvga qaytarildi!", show_alert=True)
+    await safe_callback_answer(callback, "🟢 Sotuvga qaytarildi!", show_alert=True)
     status = "🟢 Sotuvda"
     await callback.message.edit_text(
         f"🏠 <b>{apt.apartment_number}-kvartira</b>\n"
@@ -559,7 +560,7 @@ async def admin_apt_price_start(callback: CallbackQuery, state: FSMContext):
     await state.update_data(edit_apt_id=apt_id)
     await callback.message.edit_text("💰 Yangi narxni kiriting so'mda:")
     await state.set_state(AdminStates.apt_new_price)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.apt_new_price)
@@ -594,7 +595,7 @@ async def admin_apt_photos_start(callback: CallbackQuery, state: FSMContext):
         "⚠️ Eski rasmlar yangilari bilan almashtiriladi."
     )
     await state.set_state(AdminStates.apt_new_photos)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.apt_new_photos, F.photo)
@@ -639,7 +640,7 @@ async def admin_bulk_start(callback: CallbackQuery, state: FSMContext):
         parse_mode="HTML"
     )
     await state.set_state(AdminStates.bulk_apt_number)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.bulk_apt_number)
@@ -786,7 +787,7 @@ async def admin_schedule(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_schedule_kb(schedules),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_sched:"))
@@ -802,7 +803,7 @@ async def admin_schedule_day(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_schedule_day_kb(day_num, is_active),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_sched_set:"))
@@ -816,7 +817,7 @@ async def admin_schedule_set(callback: CallbackQuery, state: FSMContext):
         "Ish vaqtini kiriting (masalan: 10:00-16:00):"
     )
     await state.set_state(AdminStates.schedule_time)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.schedule_time)
@@ -859,7 +860,7 @@ async def admin_schedule_delete(callback: CallbackQuery, state: FSMContext):
         reply_markup=admin_schedule_kb(schedules),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== BOOKINGS LIST ====================
@@ -877,7 +878,7 @@ async def admin_bookings(callback: CallbackQuery, state: FSMContext):
             reply_markup=admin_main_kb(),
             parse_mode="HTML"
         )
-        await callback.answer()
+        await safe_callback_answer(callback)
         return
 
     text = "📋 <b>Kelgusi uchrashuvlar:</b>\n\n"
@@ -894,7 +895,7 @@ async def admin_bookings(callback: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="⬅️ Admin panel", callback_data="adm:main")]
     ])
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== CONSTRUCTION REPORT ====================
@@ -906,14 +907,14 @@ async def admin_construction(callback: CallbackQuery, state: FSMContext):
     async with async_session() as session:
         buildings = await get_all_buildings(session)
     if not buildings:
-        await callback.answer("Avval bino qo'shing", show_alert=True)
+        await safe_callback_answer(callback, "Avval bino qo'shing", show_alert=True)
         return
     await callback.message.edit_text(
         "🏗 <b>Qurilish hisoboti — Binoni tanlang:</b>",
         reply_markup=admin_construction_building_kb(buildings),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_constr:"))
@@ -924,7 +925,7 @@ async def admin_construction_building(callback: CallbackQuery, state: FSMContext
     await state.update_data(constr_building_id=building_id)
     await callback.message.edit_text("🏗 Hisobot sarlavhasini kiriting (masalan: Aprel oyi: 5-qavat yopildi):")
     await state.set_state(AdminStates.construction_title)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.construction_title)
@@ -1027,7 +1028,7 @@ async def admin_stats(callback: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="⬅️ Admin panel", callback_data="adm:main")]
     ])
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== BROADCAST ====================
@@ -1041,7 +1042,7 @@ async def admin_broadcast_start(callback: CallbackQuery, state: FSMContext):
         "Barcha foydalanuvchilarga yuboriladigan xabarni kiriting:"
     )
     await state.set_state(AdminStates.broadcast_message)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.broadcast_message)
@@ -1087,7 +1088,7 @@ async def admin_broadcast_confirm(callback: CallbackQuery, state: FSMContext, bo
         parse_mode="HTML"
     )
     await state.clear()
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== INSTALLMENT (BO'LIB TO'LASH) ====================
@@ -1103,7 +1104,7 @@ async def admin_inst_on(callback: CallbackQuery, state: FSMContext):
         "Boshlang'ich to'lov foizini kiriting (masalan: 30):"
     )
     await state.set_state(AdminStates.inst_initial_pct)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_inst_off:"))
@@ -1114,7 +1115,7 @@ async def admin_inst_off(callback: CallbackQuery):
     async with async_session() as session:
         await set_installment(session, apt_id, False)
         apt = await get_apartment(session, apt_id)
-    await callback.answer("💳 Bo'lib to'lash o'chirildi!", show_alert=True)
+    await safe_callback_answer(callback, "💳 Bo'lib to'lash o'chirildi!", show_alert=True)
     status = "🔴 Sotilgan" if apt.is_sold else "🟢 Sotuvda"
     await callback.message.edit_text(
         f"🏠 <b>{apt.apartment_number}-kvartira</b>\n"
@@ -1188,7 +1189,7 @@ async def admin_admins_list(callback: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="⬅️ Admin panel", callback_data="adm:main")],
     ])
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data == "adm:add_admin")
@@ -1200,7 +1201,7 @@ async def admin_add_admin_start(callback: CallbackQuery, state: FSMContext):
         "💡 Foydalanuvchi botga /start yozgandan keyin, uning ID sini bilish mumkin."
     )
     await state.set_state(AdminStates.add_admin_id)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.add_admin_id)
@@ -1240,7 +1241,7 @@ async def admin_remove_admin_list(callback: CallbackQuery, state: FSMContext):
     async with async_session() as session:
         admins = await get_all_admins(session)
     if not admins:
-        await callback.answer("📭 Qo'shimcha adminlar yo'q", show_alert=True)
+        await safe_callback_answer(callback, "📭 Qo'shimcha adminlar yo'q", show_alert=True)
         return
     from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
     buttons = []
@@ -1255,7 +1256,7 @@ async def admin_remove_admin_list(callback: CallbackQuery, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("adm_deladmin:"))
@@ -1265,7 +1266,7 @@ async def admin_remove_admin_confirm(callback: CallbackQuery):
     uid = int(callback.data.split(":")[1])
     async with async_session() as session:
         await remove_admin(session, uid)
-    await callback.answer("🗑 Admin o'chirildi!", show_alert=True)
+    await safe_callback_answer(callback, "🗑 Admin o'chirildi!", show_alert=True)
     async with async_session() as session:
         admins = await get_all_admins(session)
     text = "👥 <b>Adminlar ro'yxati:</b>\n\n"
@@ -1311,7 +1312,7 @@ async def admin_faq_list(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons), parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data == "adm:add_faq")
@@ -1320,7 +1321,7 @@ async def admin_add_faq_start(callback: CallbackQuery, state: FSMContext):
         return
     await callback.message.edit_text("❓ Savolni kiriting:")
     await state.set_state(AdminStates.faq_question)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.faq_question)
@@ -1350,7 +1351,7 @@ async def admin_delete_faq(callback: CallbackQuery):
     faq_id = int(callback.data.split(":")[1])
     async with async_session() as session:
         await delete_faq(session, faq_id)
-    await callback.answer("🗑 FAQ o'chirildi!", show_alert=True)
+    await safe_callback_answer(callback, "🗑 FAQ o'chirildi!", show_alert=True)
     # Refresh list
     async with async_session() as session:
         faqs = await get_all_faq(session)
@@ -1402,7 +1403,7 @@ async def admin_address(callback: CallbackQuery, state: FSMContext):
         [InlineKeyboardButton(text="⬅️ Admin panel", callback_data="adm:main")],
     ])
     await callback.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data == "adm:set_address")
@@ -1411,7 +1412,7 @@ async def admin_set_address(callback: CallbackQuery, state: FSMContext):
         return
     await callback.message.edit_text("📍 Yangi ofis manzili nomini kiriting (masalan: Toshkent, Chilonzor 7-kvartal):")
     await state.set_state(AdminStates.address_text)
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.message(AdminStates.address_text)

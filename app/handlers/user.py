@@ -18,6 +18,7 @@ from app.keyboards import (
     main_menu_kb, buildings_kb, floors_kb, apartments_kb,
     apartment_detail_kb, shaxmatka_kb, shaxmatka_building_select_kb
 )
+from app.handlers.utils import safe_callback_answer
 
 router = Router()
 
@@ -87,14 +88,14 @@ async def back_to_buildings(callback: CallbackQuery):
         buildings = await get_all_buildings(session)
     if not buildings:
         await safe_edit_text_or_send(callback, "🏗 Hozircha binolar qo'shilmagan.")
-        await callback.answer()
+        await safe_callback_answer(callback)
         return
     await safe_edit_text_or_send(
         callback,
         "🏢 <b>Binoni tanlang:</b>",
         reply_markup=buildings_kb(buildings),
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== BINO TANLASH -> QAVATLAR ====================
@@ -105,7 +106,7 @@ async def select_building(callback: CallbackQuery):
     async with async_session() as session:
         building = await get_building(session, building_id)
     if not building:
-        await callback.answer("Bino topilmadi", show_alert=True)
+        await safe_callback_answer(callback, "Bino topilmadi", show_alert=True)
         return
 
     if building.facade_photo:
@@ -122,7 +123,7 @@ async def select_building(callback: CallbackQuery):
             reply_markup=floors_kb(building.id, building.total_floors),
             parse_mode="HTML"
         )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("back_to_floors:"))
@@ -131,7 +132,7 @@ async def back_to_floors(callback: CallbackQuery):
     async with async_session() as session:
         building = await get_building(session, building_id)
     if not building:
-        await callback.answer("Bino topilmadi", show_alert=True)
+        await safe_callback_answer(callback, "Bino topilmadi", show_alert=True)
         return
 
     if building.facade_photo:
@@ -158,7 +159,7 @@ async def back_to_floors(callback: CallbackQuery):
             reply_markup=floors_kb(building.id, building.total_floors),
             parse_mode="HTML"
         )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== QAVAT TANLASH -> KVARTIRALAR ====================
@@ -172,12 +173,12 @@ async def select_floor(callback: CallbackQuery):
     async with async_session() as session:
         floor = await get_floor_by_number(session, building_id, floor_number)
         if not floor:
-            await callback.answer("Bu qavatda ma'lumot yo'q", show_alert=True)
+            await safe_callback_answer(callback, "Bu qavatda ma'lumot yo'q", show_alert=True)
             return
         apartments = await get_apartments_by_floor(session, floor.id)
 
     if not apartments:
-        await callback.answer("Bu qavatda kvartiralar yo'q", show_alert=True)
+        await safe_callback_answer(callback, "Bu qavatda kvartiralar yo'q", show_alert=True)
         return
 
     if floor.plan_photo:
@@ -212,7 +213,7 @@ async def select_floor(callback: CallbackQuery):
                 reply_markup=apartments_kb(apartments, floor.id, building_id),
                 parse_mode="HTML"
             )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== KVARTIRA TANLASH -> TO'LIQ MA'LUMOT ====================
@@ -224,7 +225,7 @@ async def select_apartment(callback: CallbackQuery):
     async with async_session() as session:
         apt = await get_apartment(session, apartment_id)
         if not apt:
-            await callback.answer("Kvartira topilmadi", show_alert=True)
+            await safe_callback_answer(callback, "Kvartira topilmadi", show_alert=True)
             return
         price_text = await get_price_change_text(session, apartment_id)
         is_fav = await is_favorite(session, callback.from_user.id, apartment_id)
@@ -303,7 +304,7 @@ async def select_apartment(callback: CallbackQuery):
                 reply_markup=kb,
                 parse_mode="HTML"
             )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("back_to_floor_apts:"))
@@ -312,7 +313,7 @@ async def back_to_floor_apts(callback: CallbackQuery):
     async with async_session() as session:
         apt = await get_apartment(session, apartment_id)
         if not apt:
-            await callback.answer("Topilmadi", show_alert=True)
+            await safe_callback_answer(callback, "Topilmadi", show_alert=True)
             return
         floor = apt.floor
         building = floor.building
@@ -343,7 +344,7 @@ async def back_to_floor_apts(callback: CallbackQuery):
                 reply_markup=apartments_kb(apartments, floor.id, building.id),
                 parse_mode="HTML"
             )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== SHAXMATKA ====================
@@ -385,7 +386,7 @@ async def show_shaxmatka(callback: CallbackQuery):
         building = await get_building(session, building_id)
         data = await get_all_apartments_for_building(session, building_id)
     if not data:
-        await callback.answer("Ma'lumot topilmadi", show_alert=True)
+        await safe_callback_answer(callback, "Ma'lumot topilmadi", show_alert=True)
         return
     await callback.message.edit_text(
         f"📊 <b>{building.name} — Shaxmatka</b>\n\n"
@@ -394,12 +395,12 @@ async def show_shaxmatka(callback: CallbackQuery):
         reply_markup=shaxmatka_kb(data, building_id),
         parse_mode="HTML"
     )
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 @router.callback_query(F.data.startswith("shax_label:"))
 async def shax_label_noop(callback: CallbackQuery):
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== QURILISH JARAYONI ====================
@@ -453,7 +454,7 @@ async def show_construction_building(callback: CallbackQuery):
     async with async_session() as session:
         reports = await get_construction_reports(session, building_id)
     if not reports:
-        await callback.answer("📭 Hozircha hisobotlar yo'q", show_alert=True)
+        await safe_callback_answer(callback, "📭 Hozircha hisobotlar yo'q", show_alert=True)
         return
     await callback.message.delete()
     for report in reports[:10]:
@@ -470,7 +471,7 @@ async def show_construction_building(callback: CallbackQuery):
                 await callback.message.answer_photo(photo=report.media_file_id, caption=text, parse_mode="HTML")
         else:
             await callback.message.answer(text, parse_mode="HTML")
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== BOG'LANISH ====================
@@ -502,9 +503,9 @@ async def toggle_fav(callback: CallbackQuery):
     async with async_session() as session:
         added = await toggle_favorite(session, callback.from_user.id, apartment_id)
     if added:
-        await callback.answer("⭐ Sevimlilarga qo'shildi!", show_alert=True)
+        await safe_callback_answer(callback, "⭐ Sevimlilarga qo'shildi!", show_alert=True)
     else:
-        await callback.answer("💔 Sevimlilardan o'chirildi!", show_alert=True)
+        await safe_callback_answer(callback, "💔 Sevimlilardan o'chirildi!", show_alert=True)
 
 
 @router.message(F.text == "⭐ Sevimlilar")
@@ -544,7 +545,7 @@ async def show_installment(callback: CallbackQuery):
     async with async_session() as session:
         apt = await get_apartment(session, apartment_id)
     if not apt or not apt.installment_available:
-        await callback.answer("Bu kvartira uchun bo'lib to'lash mavjud emas", show_alert=True)
+        await safe_callback_answer(callback, "Bu kvartira uchun bo'lib to'lash mavjud emas", show_alert=True)
         return
 
     inst = calc_installment(apt.price, apt.initial_payment_percent, apt.installment_months)
@@ -574,7 +575,7 @@ async def show_installment(callback: CallbackQuery):
     except Exception:
         await callback.message.delete()
         await callback.message.answer(text, reply_markup=kb, parse_mode="HTML")
-    await callback.answer()
+    await safe_callback_answer(callback)
 
 
 # ==================== FAQ ====================
