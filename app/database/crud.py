@@ -601,7 +601,9 @@ async def get_setting(session: AsyncSession, key: str) -> Optional[str]:
     return row.answer if row else None
 
 
-async def set_setting(session: AsyncSession, key: str, value: str):
+async def set_setting(session: AsyncSession, key: str, value: Optional[str]):
+    if value is None:
+        value = ""
     result = await session.execute(
         select(FAQ).where(FAQ.question == f"__setting__{key}")
     )

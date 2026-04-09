@@ -1418,7 +1418,14 @@ async def admin_set_address(callback: CallbackQuery, state: FSMContext):
 async def admin_address_text(message: Message, state: FSMContext):
     if not await check_admin(message.from_user.id):
         return
-    await state.update_data(new_address=message.text)
+    new_address = (message.text or "").strip()
+    if not new_address:
+        await message.answer(
+            "❌ Manzil matn ko'rinishida yuborilishi kerak.\n\n"
+            "Masalan: Toshkent, Chilonzor 7-kvartal"
+        )
+        return
+    await state.update_data(new_address=new_address)
     await message.answer(
         "🗺 Endi ofis lokatsiyasini yuboring:\n\n"
         "📎 Telegram'da pastdagi 📎 tugmasini bosib → 📍 Location → ofis joyini tanlang va yuboring."
@@ -1433,13 +1440,21 @@ async def admin_address_location(message: Message, state: FSMContext):
     lat = message.location.latitude
     lon = message.location.longitude
     data = await state.get_data()
+    new_address = (data.get("new_address") or "").strip()
+    if not new_address:
+        await state.set_state(AdminStates.address_text)
+        await message.answer(
+            "❌ Avval ofis manzilini matn ko'rinishida kiriting.\n\n"
+            "Masalan: Toshkent, Chilonzor 7-kvartal"
+        )
+        return
     async with async_session() as session:
-        await set_setting(session, "office_address", data["new_address"])
+        await set_setting(session, "office_address", new_address)
         await set_setting(session, "office_lat", str(lat))
         await set_setting(session, "office_lon", str(lon))
     await message.answer(
         f"✅ <b>Manzil yangilandi!</b>\n\n"
-        f"📍 {data['new_address']}\n"
+        f"📍 {new_address}\n"
         f"🗺 {lat}, {lon}",
         reply_markup=admin_main_kb(),
         parse_mode="HTML"
